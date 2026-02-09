@@ -966,17 +966,41 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount)
     *pCount = FifoCnt;
     return 0;
   }
-  if(IntFlag & AFEINTSRC_ENDSEQ)
-  {
-    FifoCnt = AD5940_FIFOGetCnt();
-    AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
-    AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
-    /* Process data */
-    AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
-    *pCount = FifoCnt;
-    AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
+//  if(IntFlag & AFEINTSRC_ENDSEQ)
+//  {
+ //   FifoCnt = AD5940_FIFOGetCnt();
+ //   AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+ //   AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
+ //   /* Process data */
+ //   AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
+ //   *pCount = FifoCnt;
+  //  AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
+//
+  //}
+  
+if(IntFlag & AFEINTSRC_ENDSEQ)
+{
+  FifoCnt = AD5940_FIFOGetCnt();
+  AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+  AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
+  /* Process data */
+  AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
+  *pCount = FifoCnt;
 
+  /* 1) Stop the sweep updates (WUPT), so nothing overwrites our park value */
+  AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
+
+  /* 2) Park bias at 0 mV by forcing Vbias = Vzero */
+  {
+    uint32_t vzero = AppSWVCfg.CurrVzeroCode & 0x3F;   /* 6-bit Vzero DAC code */
+    uint32_t vbias = (vzero << 6) & 0x0FFF;            /* 12-bit Vbias DAC code */
+    AD5940_WriteReg(REG_AFE_LPDACDAT0, (vzero << 12) | vbias);
   }
+}
+
+
+
+  
   return 0;
 }
 

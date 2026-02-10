@@ -999,18 +999,39 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount)
 //
   //}
   
+//if(IntFlag & AFEINTSRC_ENDSEQ)
+//{
+//  FifoCnt = AD5940_FIFOGetCnt();
+//  AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+//  AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
+//  /* Process data */
+//  AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
+//  *pCount = FifoCnt;
+//
+//  /* 1) Stop the sweep updates (WUPT), so nothing overwrites our park value */
+//  AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
+
 if(IntFlag & AFEINTSRC_ENDSEQ)
 {
   FifoCnt = AD5940_FIFOGetCnt();
   AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
   AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
+
   /* Process data */
   AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
   *pCount = FifoCnt;
 
-  /* 1) Stop the sweep updates (WUPT), so nothing overwrites our park value */
-  AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
+  /* Stop sweep updates so nothing overwrites our park value */
+  AppSWVCtrl(APPCTRL_STOPNOW, 0);
 
+  /* Park bias at ~0 mV */
+  AppSWV_ParkBiasAt0mV();
+
+  /* Signal run complete */
+  g_run_complete_flag = 1;
+}
+
+  
   /* 2) Park bias at 0 mV by forcing Vbias = Vzero */
   {
     uint32_t vzero = AppSWVCfg.CurrVzeroCode & 0x3F;   /* 6-bit Vzero DAC code */

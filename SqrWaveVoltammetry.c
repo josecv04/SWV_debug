@@ -242,6 +242,27 @@ uint32_t AppSWV_StreamNextStepIndex(void)
   return g_stream_sample_idx / 2;
 }
 
+/* ------------------------------------------------------------
+ * Run-complete latch (set on ENDSEQ, consumed by MCU/app layer)
+ * ------------------------------------------------------------ */
+static volatile uint8_t g_run_complete_flag = 0;
+
+uint8_t AppSWV_ConsumeRunCompleteFlag(void)
+{
+  uint8_t v = g_run_complete_flag;
+  g_run_complete_flag = 0;
+  return v;
+}
+
+static void AppSWV_ParkBiasAt0mV(void)
+{
+  uint32_t vzero = AppSWVCfg.CurrVzeroCode & 0x3F;
+  uint32_t vbias = (vzero << 6) & 0x0FFF;
+  AD5940_WriteReg(REG_AFE_LPDACDAT0, (vzero << 12) | vbias);
+}
+
+
+
 /**
 * @todo add paramater check.
 * SampleDelay will limited by wakeup timer, check WUPT register value calculation equation below for reference.

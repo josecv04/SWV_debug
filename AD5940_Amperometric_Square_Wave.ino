@@ -174,7 +174,11 @@ void AD5940RampStructInit(void)
 
 void AD5940_Main(void)
 {
-  uint32_t temp;  
+  uint32_t temp; 
+  const uint32_t RESTART_DELAY_MS = 60000;
+  bool waiting_for_restart = false;
+  uint32_t run_complete_ms = 0;
+
   AD5940PlatformCfg();
   AD5940RampStructInit();
 	
@@ -185,18 +189,51 @@ void AD5940_Main(void)
 	AD5940_Delay10us(100000);		/* Add a delay to allow sensor reach equilibrium befor starting the measurement */
   AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
 
-  while(1)
-  {
-    if(AD5940_GetMCUIntFlag())
-    {
-      AD5940_ClrMCUIntFlag();
-      temp = APPBUFF_SIZE;
-      AppSWVISR(AppBuff, &temp);
-      RampShowResult((float*)AppBuff, temp);
-    }
+//  while(1)
+//  {
+//    if(AD5940_GetMCUIntFlag())
+//    {
+//      AD5940_ClrMCUIntFlag();
+//      temp = APPBUFF_SIZE;
+//      AppSWVISR(AppBuff, &temp);
+//      RampShowResult((float*)AppBuff, temp);
+//    }
+//
+//  }
+//}
 
+
+while(1)
+{
+  if(waiting_for_restart)
+  {
+    if((uint32_t)(millis() - run_complete_ms) >= RESTART_DELAY_MS)
+    {
+      AD5940RampStructInit();
+      AppSWVInit(AppBuff, APPBUFF_SIZE);
+      AppSWVCtrl(APPCTRL_START, 0);
+
+      waiting_for_restart = false;
+      printf("[SWV] Restarting sweep after 60s park delay\n");
+    }
+  }
+
+  if(AD5940_GetMCUIntFlag())
+  {
+    AD5940_ClrMCUIntFlag();
+    temp = APPBUFF_SIZE;
+    AppSWVISR(AppBuff, &temp);
+    RampShowResult((float*)AppBuff, temp);
+
+    if(AppSWV_ConsumeRunCompleteFlag())
+    {
+      waiting_for_restart = true;
+      run_complete_ms = millis();
+      printf("[SWV] Sweep complete. Parked at ~0 mV. Waiting 60s...\n");
+    }
   }
 }
+
 
 
 //Insert my code here 

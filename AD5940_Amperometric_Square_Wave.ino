@@ -218,7 +218,8 @@ void AD5940_Main(void)
         printf("[SWV] Sweep complete. Parked at ~0 mV. Waiting 60s...\n");
       }
     }
-  }
+	  
+	delay(1);
 }
 
 

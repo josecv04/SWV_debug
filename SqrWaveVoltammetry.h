@@ -21,12 +21,22 @@ extern "C" {
 // (keep your existing AppSWVCfg_Type definition here)
 // (keep your APPCTRL_* and function prototypes here)
 
+//AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize);
+//AD5940Err AppSWVGetCfg(void *pCfg);
+//AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount);
+//AD5940Err AppSWVCtrl(uint32_t Command, void *pPara);
+//void AD5940_McuSetLow(void);
+//void AD5940_McuSetHigh(void);
+
 AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize);
 AD5940Err AppSWVGetCfg(void *pCfg);
 AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount);
 AD5940Err AppSWVCtrl(uint32_t Command, void *pPara);
+uint8_t  AppSWV_ConsumeRunCompleteFlag(void);
 void AD5940_McuSetLow(void);
 void AD5940_McuSetHigh(void);
+
+
 
 /*
  * Streaming metadata helpers

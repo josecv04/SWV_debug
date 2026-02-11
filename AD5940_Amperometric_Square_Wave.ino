@@ -228,17 +228,15 @@ void AD5940_Main(void)
 //Initialization 
 
 void setup() {
- ble_init();  // start BLE advertising for amperometric data
-
   Serial.begin(115200);
-  ////pinMode(13, OUTPUT);
+
+  ble_init();  // start BLE advertising for amperometric data
+
   delay(20000);
   printf("start\n");
-  //digitalWrite(13, HIGH);
   AD5940_MCUResourceInit(NULL);
   printf("initialized\n");
   AD5940_Main();
-  //digitalWrite(13, LOW);
 }
 
 void loop() {

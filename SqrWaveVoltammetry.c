@@ -950,54 +950,72 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount)
 {
   uint32_t BuffCount;
   uint32_t FifoCnt;
-  BuffCount = *pCount;
   uint32_t IntFlag;
-  
+
+  BuffCount = *pCount;
+
   if(AD5940_WakeUp(10) > 10)  /* Wakeup AFE by read register, read 10 times at most */
     return AD5940ERR_WAKEUP;  /* Wakeup Failed */
+
   AD5940_SleepKeyCtrlS(SLPKEY_LOCK);
   *pCount = 0;
+
   IntFlag = AD5940_INTCGetFlag(AFEINTC_0);
+
   if(IntFlag & AFEINTSRC_CUSTOMINT0)          /* High priority. */
   {
     AD5940Err error;
     AD5940_INTCClrFlag(AFEINTSRC_CUSTOMINT0);
-        //AD5940_McuSetHigh();
     error = AppSWVSeqDACCtrlGen();
-        //AD5940_McuSetLow();
     if(error != AD5940ERR_OK) return error;
-   // AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK);
-    //AD5940_EnterSleepS(); /* If there is need to do AFE re-configure, do it here when AFE is in active state */
   }
-  if(IntFlag&AFEINTSRC_DATAFIFOTHRESH)
+
+  if(IntFlag & AFEINTSRC_DATAFIFOTHRESH)
   {
     FifoCnt = AD5940_FIFOGetCnt();
-    
+
     if(FifoCnt > BuffCount)
     {
-      ///@todo buffer is limited.
+      /* Buffer limited; still read what FIFO reports (existing behavior). */
     }
+
     AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
     AD5940_INTCClrFlag(AFEINTSRC_DATAFIFOTHRESH);
+
     AppSWVRegModify(pBuff, &FifoCnt);
-  //  AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK);
-    //AD5940_EnterSleepS();
+
     /* Process data */
-    AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
+    AppSWVDataProcess((int32_t*)pBuff, &FifoCnt);
     *pCount = FifoCnt;
+
     return 0;
   }
-//  if(IntFlag & AFEINTSRC_ENDSEQ)
-//  {
- //   FifoCnt = AD5940_FIFOGetCnt();
- //   AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
- //   AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
- //   /* Process data */
- //   AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
- //   *pCount = FifoCnt;
-  //  AppSWVCtrl(APPCTRL_STOPNOW, 0);    /* Stop the Wakeup Timer. */
-//
-  //}
+
+  if(IntFlag & AFEINTSRC_ENDSEQ)
+  {
+    FifoCnt = AD5940_FIFOGetCnt();
+    AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+    AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
+
+    /* Process data */
+    AppSWVDataProcess((int32_t*)pBuff, &FifoCnt);
+    *pCount = FifoCnt;
+
+    /* Stop sweep updates so nothing overwrites our park value */
+    AppSWVCtrl(APPCTRL_STOPNOW, 0);
+
+    /* Park bias at ~0 mV */
+    AppSWV_ParkBiasAt0mV();
+
+    /* Signal run complete */
+    g_run_complete_flag = 1;
+
+    return 0;
+  }
+
+  return 0;
+}
+
   
 //if(IntFlag & AFEINTSRC_ENDSEQ)
 //{
